@@ -1,0 +1,36 @@
+---
+alwaysApply: true
+---
+# Nightscout Cockpit - Project Rails
+
+## A. Security and Privacy
+- Nightscout token never sent to the client; server-side only.
+- Tokens encrypted-at-rest (Fernet via APP_ENCRYPTION_KEY); never logged (including query strings).
+- CORS strict: only CORS_ORIGINS frontend origin.
+- Auth required for all /me/* endpoints.
+- Rate limiting on auth and data endpoints (in-memory for MVP).
+- HTTPS assumed in production; local HTTP ok.
+
+## B. Code Quality
+- Pydantic models for API responses.
+- Separate modules: fetch - parsing - metrics - aggregation.
+- Type hints on all functions.
+- Basic tests for aggregation/processing modules.
+- No hardcoded localhost in containers: frontend uses BACKEND_URL env (docker: http://backend:8000).
+
+## C. UX
+- No placeholder text about endpoint not available in production UI.
+- Clear empty-states: Geen data in dit venster.
+- Units toggle mg/dL vs mmol/L (convert for display only; internal = mg/dL).
+- Live dashboard uses time.sleep() + do_rerun() compat helper; no meta-refresh.
+- Show Last update, Data age, Coverage percent clearly.
+
+## D. Performance
+- Cache live endpoint TTL 15-30s.
+- Cache insights endpoint TTL 300s.
+- Nightscout fetch counts large enough for window/range (14d = 25000 entries).
+- Resample to 5-min grid for aggregations.
+
+## E. Nightscout Data Sources (AAPS)
+- CGM: GET /api/v1/entries/sgv.json?count=N&token=T
+- Temp Basal: GET /api/v1/treatments.json?count=N&token=T with eventType Temp Basal
