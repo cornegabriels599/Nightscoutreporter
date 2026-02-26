@@ -1,0 +1,45 @@
+databases:
+  - name: nightscout-db
+    plan: free
+    databaseName: nightscout
+    user: nightscout
+    postgresMajorVersion: "16"
+
+services:
+  - type: web
+    name: nightscout-backend
+    runtime: docker
+    dockerfilePath: ./backend/Dockerfile
+    dockerContext: ./backend
+    autoDeploy: true
+    envVars:
+      - key: DATABASE_URL
+        fromDatabase:
+          name: nightscout-db
+          property: connectionString
+      - key: APP_ENCRYPTION_KEY
+        sync: false
+      - key: JWT_SECRET_KEY
+        sync: false
+      - key: JWT_ALGORITHM
+        value: HS256
+      - key: ACCESS_TOKEN_EXPIRE_MINUTES
+        value: "60"
+      - key: CORS_ORIGINS
+        sync: false
+      - key: REQUESTS_TIMEOUT_SECONDS
+        value: "10"
+      - key: CACHE_TTL_SECONDS
+        value: "30"
+      - key: RATE_LIMIT_PER_MINUTE
+        value: "120"
+
+  - type: web
+    name: nightscout-frontend
+    runtime: docker
+    dockerfilePath: ./frontend/Dockerfile
+    dockerContext: ./frontend
+    autoDeploy: true
+    envVars:
+      - key: BACKEND_URL
+        sync: false

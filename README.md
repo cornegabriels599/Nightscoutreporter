@@ -76,6 +76,38 @@ docker compose down
 docker compose up --build -d
 ```
 
+## Deploy to Render (1-click Blueprint)
+
+This repo includes a `render.yaml` Blueprint that provisions everything automatically.
+
+### Steps
+1. Push this repo to GitHub.
+2. Go to [Render Dashboard](https://dashboard.render.com/) → **New** → **Blueprint**.
+3. Select the repo → **Deploy**.
+4. Render creates: managed Postgres 16, backend web service, frontend web service.
+
+### Set secrets after first deploy
+In the Render dashboard, go to each service → **Environment** and fill in:
+
+**nightscout-backend:**
+| Variable | Value |
+|----------|-------|
+| `APP_ENCRYPTION_KEY` | Generate: `python -c "from cryptography.fernet import Fernet; print(Fernet.generate_key().decode())"` |
+| `JWT_SECRET_KEY` | Generate: `python -c "import secrets; print(secrets.token_urlsafe(32))"` |
+| `CORS_ORIGINS` | `https://<your-frontend>.onrender.com` |
+
+**nightscout-frontend:**
+| Variable | Value |
+|----------|-------|
+| `BACKEND_URL` | `https://<your-backend>.onrender.com` |
+
+> `DATABASE_URL` is set automatically by the Blueprint from the managed Postgres instance.
+
+### Notes
+- Both services use Docker and bind to Render's dynamic `$PORT`.
+- Nightscout tokens are per-user, encrypted server-side (Fernet), and never exposed to the client.
+- Free-tier Postgres has limits; upgrade if needed for production use.
+
 ## Troubleshooting
 
 | Problem | Fix |
@@ -85,7 +117,8 @@ docker compose up --build -d
 | Password too long error | Argon2 supports up to 128 chars (no bcrypt 72-byte limit). |
 | No basal data shown | Ensure your Nightscout has `Temp Basal` treatments (AAPS). |
 | Stale data warning | Data age > 10 min triggers stale indicator. Check NS connection. |
-| CORS errors | Set `CORS_ORIGINS` in `.env` to match your frontend URL. |
+| CORS errors | Set `CORS_ORIGINS` in `.env` (local) or Render env to match your frontend URL. |
+| Render deploy fails | Check Build Logs in Render dashboard. Ensure secrets are set. |
 
 ## Security
 
@@ -93,9 +126,9 @@ docker compose up --build -d
 - CORS restricted to `CORS_ORIGINS`.
 - Auth required for all `/me/*` endpoints.
 - Rate limiting on auth + data endpoints (in-memory).
-- HTTPS assumed in production.
+- HTTPS assumed in production (Render provides TLS automatically).
 
-## Deployment (GitHub Actions)
+## Deployment (GitHub Actions → VPS)
 
 Required secrets: `GHCR_USERNAME`, `GHCR_TOKEN`, `VPS_HOST`, `VPS_USER`, `VPS_SSH_KEY`, `VPS_COMPOSE_PATH`.
 
